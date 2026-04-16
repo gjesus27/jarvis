@@ -1,4 +1,4 @@
-speech_recognition
+SpeechRecognition
 vosk
 pyttsx3
 selenium
@@ -7,4 +7,4 @@ google-auth-oauthlib
 google-auth-httplib2
 python-dotenv
 webdriver-manager
-playsound
+

@@ -1,7 +1,7 @@
 import os
 import sys
 import threading
-from voice.engine import VoiceEngine
+from python_backend.voice.engine import VoiceEngine
 from commands.handler import CommandHandler
 
 class Jarvis:
