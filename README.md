@@ -1,20 +1,38 @@
-# Jarvis (Web + Voz)
+# Jarvis Fullstack (React + TypeScript + Express + DeepSeek)
 
-Este projeto contém a interface web do Jarvis com React + TypeScript (Vite) e um backend Node.js para chamadas de IA com DeepSeek.
+Projeto Jarvis com frontend em React/Vite e backend em Express para integração segura com DeepSeek.
 
-## Arquitetura
+## Requisitos
 
-- **Frontend (Vite/React):** reconhecimento de voz + síntese de voz + UI.
-- **Backend (Express):** endpoint seguro `POST /ask` que chama DeepSeek (`deepseek-chat`).
-- **Segurança:** a chave `DEEPSEEK_API_KEY` fica **somente** no backend.
+- Node.js 18+
+- npm
 
-## Rodando localmente
+## Configuração local
 
 ### 1) Frontend
 
 ```bash
 npm install
 cp .env.example .env
+```
+
+No `.env` (raiz), configure:
+
+```env
+VITE_API_URL=https://SEU-BACKEND.onrender.com
+VITE_BASE_PATH=/NOME-DO-REPO/
+```
+
+Para desenvolvimento local, você pode trocar temporariamente:
+
+```env
+VITE_API_URL=http://localhost:8787
+VITE_BASE_PATH=/
+```
+
+Executar frontend:
+
+```bash
 npm run dev
 ```
 
@@ -27,63 +45,59 @@ cp ../.env.example .env
 npm run dev
 ```
 
-> No backend, garanta que `DEEPSEEK_API_KEY` esteja preenchida no `.env`.
+No `server/.env`:
 
-## Variáveis de ambiente
-
-### Frontend (`.env` na raiz)
-
-- `VITE_API_BASE_URL` (ex.: `http://localhost:8787`)
-- `VITE_BACKEND_DEV_URL` (usado no proxy do Vite)
-- `VITE_BASE_PATH` (para deploy no GitHub Pages)
-
-### Backend (`server/.env`)
-
-- `DEEPSEEK_API_KEY`
-- `PORT` (padrão `8787`)
-- `ALLOWED_ORIGIN` (ex.: `http://localhost:5173`)
-
-## Endpoint do backend
-
-### `POST /ask`
-
-Body:
-
-```json
-{ "prompt": "sua pergunta" }
+```env
+DEEPSEEK_API_KEY=ds-sua-chave-aqui
+PORT=8787
+ALLOWED_ORIGIN=http://localhost:5173
 ```
 
-Resposta:
+## Deploy do frontend no GitHub Pages
 
-```json
-{ "response": "resposta da IA" }
-```
+A configuração de build já está preparada para GitHub Pages com base padrão `/NOME-DO-REPO/` em `vite.config.ts`.
 
-## Deploy
+### Deploy manual
 
-### Frontend no GitHub Pages
-
-1. Defina `VITE_BASE_PATH` com o caminho do repositório, por exemplo: `/nome-do-repo/`.
-2. Gere build:
+1. Ajuste `homepage` no `package.json` para sua URL real.
+2. Garanta que `.env` tenha `VITE_API_URL` do backend em produção.
+3. Rode:
 
 ```bash
-npm run build
+npm run deploy
 ```
 
-3. Publique a pasta `dist` no GitHub Pages.
+Esse comando executa `predeploy` (`npm run build`) e publica `dist` com `gh-pages`.
 
-### Backend no Render
+### Deploy automático (GitHub Actions)
 
-1. Crie um Web Service apontando para `server`.
-2. Build command: `npm install`
-3. Start command: `npm start`
-4. Configure variáveis no Render:
-   - `DEEPSEEK_API_KEY`
-   - `ALLOWED_ORIGIN` com a URL do GitHub Pages
+Arquivo: `.github/workflows/deploy.yml`
 
-## Comandos de voz úteis
+Ele faz automaticamente:
 
-- `Jarvis, que horas são`
-- `Jarvis, pesquise no google por notícias de tecnologia`
-- `Jarvis, pesquise inteligência artificial na internet`
-- `Jarvis, pergunta qual a diferença entre API REST e GraphQL`
+- instalação de dependências
+- build do projeto
+- geração de fallback SPA (`dist/404.html`)
+- adição de `.nojekyll`
+- publicação no GitHub Pages
+
+Para funcionar corretamente, configure no repositório:
+
+- **Settings → Pages → Source:** GitHub Actions
+- **Secrets and variables → Actions → Repository secret:**
+  - `VITE_API_URL` com URL pública do backend (Render)
+
+## Backend (Render)
+
+O backend já está preparado com `render.yaml` na raiz, apontando para `server`.
+
+Variáveis necessárias no Render:
+
+- `DEEPSEEK_API_KEY`
+- `ALLOWED_ORIGIN` (URL do GitHub Pages)
+
+## Observações
+
+- A chave `DEEPSEEK_API_KEY` nunca deve ir para o frontend.
+- O frontend usa `import.meta.env.VITE_API_URL` para chamar `/ask`.
+- A interface e lógica principal do Jarvis foram preservadas.

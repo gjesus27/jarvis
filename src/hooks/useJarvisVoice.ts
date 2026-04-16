@@ -4,11 +4,14 @@ type AskResponse = {
   response?: string;
 };
 
+const NETWORK_FALLBACK_MESSAGE = 'Estou com instabilidade no momento, chefe.';
+
 export function useJarvisVoice() {
   const [isListening, setIsListening] = useState(false);
   const [lastTranscription, setLastTranscription] = useState('');
   const [response, setResponse] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const speak = useCallback((text: string) => {
@@ -37,72 +40,46 @@ export function useJarvisVoice() {
     setResponse(text);
   }, []);
 
-  const searchWeb = useCallback(
-    async (query: string) => {
-      try {
-        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-        const res = await fetch(ddgUrl);
+  const askBackend = useCallback(async (prompt: string) => {
+    const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+    const askEndpoint = `${apiUrl}/ask`;
 
-        if (!res.ok) {
-          throw new Error(`Falha na busca web (${res.status})`);
-        }
+    const res = await fetch(askEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
 
-        const data = await res.json();
-        const abstract = data?.AbstractText as string | undefined;
-        const related = data?.RelatedTopics?.[0]?.Text as string | undefined;
+    if (!res.ok) {
+      throw new Error(`Falha no backend (${res.status})`);
+    }
 
-        if (abstract) {
-          speak(`Encontrei isto na web: ${abstract}`);
-          return;
-        }
-
-        if (related) {
-          speak(`Aqui está o resultado mais relevante: ${related}`);
-          return;
-        }
-
-        speak('Não encontrei um resumo direto, chefe. Vou abrir o Google com sua pesquisa.');
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
-      } catch {
-        speak('A busca online falhou no momento, chefe. Vou abrir o Google para você.');
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
-      }
-    },
-    [speak],
-  );
+    return (await res.json()) as AskResponse;
+  }, []);
 
   const askAI = useCallback(
     async (prompt: string) => {
-      const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
-      const askEndpoint = apiBaseUrl ? `${apiBaseUrl}/ask` : '/ask';
+      setIsLoading(true);
 
       try {
-        const res = await fetch(askEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ prompt }),
-        });
-
-        if (!res.ok) {
-          throw new Error(`Falha no backend (${res.status})`);
-        }
-
-        const data = (await res.json()) as AskResponse;
+        const data = await askBackend(prompt);
         const aiText = data.response?.trim();
 
         if (!aiText) {
-          speak('Recebi resposta vazia da IA, chefe.');
+          speak(NETWORK_FALLBACK_MESSAGE);
           return;
         }
 
         speak(aiText);
       } catch {
-        speak('Não consegui consultar a IA agora, chefe. Tente novamente em instantes.');
+        speak(NETWORK_FALLBACK_MESSAGE);
+      } finally {
+        setIsLoading(false);
       }
     },
-    [speak],
+    [askBackend, speak],
   );
 
   const handleCommand = useCallback(
@@ -145,7 +122,8 @@ export function useJarvisVoice() {
           speak('Claro, chefe. O que devo buscar na internet?');
           return;
         }
-        await searchWeb(query);
+        speak(`Pesquisando no Google por: ${query}`);
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
       } else if (cmd.includes('ia') || cmd.includes('inteligência artificial') || cmd.startsWith('pergunta')) {
         const prompt = cmd.replace('ia', '').replace('inteligência artificial', '').replace('pergunta', '').trim();
         if (!prompt) {
@@ -157,7 +135,7 @@ export function useJarvisVoice() {
         speak('Ainda estou aprendendo a lidar com esse tipo de solicitação, chefe. Mas estou à sua disposição.');
       }
     },
-    [askAI, searchWeb, speak],
+    [askAI, speak],
   );
 
   const toggleListening = useCallback(() => {
@@ -223,6 +201,7 @@ export function useJarvisVoice() {
     lastTranscription,
     response,
     isSpeaking,
+    isLoading,
     speak,
   };
 }
