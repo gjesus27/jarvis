@@ -1,89 +1,127 @@
-# Jarvis (Web + Voz)
+# Jarvis Fullstack (React + TypeScript + Express + DeepSeek)
 
-Este projeto contém a interface web do Jarvis com React + TypeScript (Vite) e um backend Node.js para chamadas de IA com DeepSeek.
+Este projeto mantém a interface existente do Jarvis em React/Vite e adiciona um backend Node.js seguro para integração com DeepSeek, sem expor API keys no frontend.
 
 ## Arquitetura
 
-- **Frontend (Vite/React):** reconhecimento de voz + síntese de voz + UI.
-- **Backend (Express):** endpoint seguro `POST /ask` que chama DeepSeek (`deepseek-chat`).
-- **Segurança:** a chave `DEEPSEEK_API_KEY` fica **somente** no backend.
+- **Frontend (Vite + React + TypeScript):** UI + voz (SpeechRecognition e speechSynthesis).
+- **Backend (Node.js + Express):** endpoint `POST /ask` para comunicação com DeepSeek.
+- **Segurança:** `DEEPSEEK_API_KEY` existe somente no backend (`server/.env`).
+- **Resiliência:** timeout, retry automático, fallback amigável e cache em memória.
 
-## Rodando localmente
+## Requisitos
+
+- Node.js 18+
+- npm
+
+## Configuração local
 
 ### 1) Frontend
+
+Na raiz do projeto:
 
 ```bash
 npm install
 cp .env.example .env
+```
+
+Edite o `.env` e garanta:
+
+```env
+VITE_API_URL=http://localhost:8787
+VITE_BASE_PATH=/
+```
+
+Suba o frontend:
+
+```bash
 npm run dev
 ```
 
 ### 2) Backend
 
+No diretório `server`:
+
 ```bash
 cd server
 npm install
 cp ../.env.example .env
+```
+
+No `server/.env`, configure ao menos:
+
+```env
+DEEPSEEK_API_KEY=ds-sua-chave-aqui
+PORT=8787
+ALLOWED_ORIGIN=http://localhost:5173
+```
+
+Suba o backend:
+
+```bash
 npm run dev
 ```
 
-> No backend, garanta que `DEEPSEEK_API_KEY` esteja preenchida no `.env`.
-
-## Variáveis de ambiente
-
-### Frontend (`.env` na raiz)
-
-- `VITE_API_BASE_URL` (ex.: `http://localhost:8787`)
-- `VITE_BACKEND_DEV_URL` (usado no proxy do Vite)
-- `VITE_BASE_PATH` (para deploy no GitHub Pages)
-
-### Backend (`server/.env`)
-
-- `DEEPSEEK_API_KEY`
-- `PORT` (padrão `8787`)
-- `ALLOWED_ORIGIN` (ex.: `http://localhost:5173`)
-
-## Endpoint do backend
+## Endpoint
 
 ### `POST /ask`
 
-Body:
+Request body:
 
 ```json
-{ "prompt": "sua pergunta" }
+{
+  "prompt": "string"
+}
 ```
 
-Resposta:
+Regras:
+
+- `prompt` obrigatório
+- limite de 500 caracteres
+
+Response (sempre retorna um texto em `response`):
 
 ```json
-{ "response": "resposta da IA" }
+{
+  "response": "string"
+}
 ```
+
+## Robustez aplicada no backend
+
+- Timeout de **10 segundos** por chamada ao DeepSeek
+- Retry automático de até **2 tentativas adicionais**
+- Cache simples em memória com `Map`
+- Fallback padrão em qualquer falha externa:
+  - `Estou enfrentando instabilidade com os sistemas de IA, chefe. Tente novamente em instantes.`
 
 ## Deploy
 
-### Frontend no GitHub Pages
+### Frontend (GitHub Pages)
 
-1. Defina `VITE_BASE_PATH` com o caminho do repositório, por exemplo: `/nome-do-repo/`.
-2. Gere build:
+1. Configure `VITE_BASE_PATH` no ambiente de build com o subpath do repositório (ex.: `/jarvis/`).
+2. Configure `VITE_API_URL` apontando para a URL pública do backend no Render.
+3. Rode:
 
 ```bash
 npm run build
 ```
 
-3. Publique a pasta `dist` no GitHub Pages.
+4. Publique a pasta `dist` no GitHub Pages.
 
-### Backend no Render
+### Backend (Render)
 
-1. Crie um Web Service apontando para `server`.
-2. Build command: `npm install`
-3. Start command: `npm start`
-4. Configure variáveis no Render:
-   - `DEEPSEEK_API_KEY`
-   - `ALLOWED_ORIGIN` com a URL do GitHub Pages
+O projeto já inclui `render.yaml` na raiz com serviço apontando para `server`.
 
-## Comandos de voz úteis
+No Render, defina variáveis:
 
-- `Jarvis, que horas são`
-- `Jarvis, pesquise no google por notícias de tecnologia`
-- `Jarvis, pesquise inteligência artificial na internet`
-- `Jarvis, pergunta qual a diferença entre API REST e GraphQL`
+- `DEEPSEEK_API_KEY`
+- `ALLOWED_ORIGIN` (URL pública do frontend)
+- `PORT` (opcional; Render normalmente injeta automaticamente)
+
+## Observações importantes
+
+- Não coloque `DEEPSEEK_API_KEY` no frontend.
+- O frontend chama somente `VITE_API_URL + /ask`.
+- Em caso de falhas de rede/backend, o hook de voz responde:
+  - `Estou com instabilidade no momento, chefe.`
