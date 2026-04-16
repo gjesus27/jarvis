@@ -7,7 +7,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DEFAULT_GH_PAGES_BASE = '/NOME-DO-REPO/';
+const DEFAULT_GH_PAGES_BASE = '/jarvis/';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
