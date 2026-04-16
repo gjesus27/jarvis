@@ -1,6 +1,9 @@
-name: Deploy Frontend to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -15,6 +18,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,12 +30,19 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build
+      - name: Build project
         run: npm run build
         env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Add SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - name: Add .nojekyll
+        run: touch dist/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -41,6 +52,6 @@ jobs:
         with:
           path: ./dist
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

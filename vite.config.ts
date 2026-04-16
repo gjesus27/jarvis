@@ -7,12 +7,13 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const DEFAULT_GH_PAGES_BASE = '/NOME-DO-REPO/';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    base: env.VITE_BASE_PATH || '/',
+    base: env.VITE_BASE_PATH || DEFAULT_GH_PAGES_BASE,
     plugins: [react(), tailwindcss(), viteSingleFile()],
     resolve: {
       alias: {
